@@ -621,4 +621,69 @@ protected ResponseEntity<Object> handleMethodArgumentNotValid(
 이렇게 에러의 개수를 나타내 줄 수 있는 메서드를 활용해봤다.
 
 
-## 
+## Open API 사양 및 Swagger 파악하기
+
+REST API를 잘 이해해야 하고 노출되고 있는 여러 리소스가  무엇인지 알아야 함.
+또한 그에 맞는 요청 및 응답 구조 형식도 알아야 하는데 Cosumer가 기대하는 응답은 무엇인지 제약이나 검증은 있는지 따져봐야 합니다.
+
+#### REST API 문서를 만들때 생기는 문제점
+- 정확성: 최신 버전이고 정확한지 어떻게 확인 할 수 있을까?
+- 일관성: 모든 API의 문서가 일관된 형식으로 이루어져 있는지 어떻게 보장할 수 있을까?
+
+**해결방법**
+	 1 .문서를 수동적으로 관리하기 -> 기본적으로 REST API의 관련 문서를 관리하는 문서나 HTML 파일을 갖고있음. 문서를 수동으로 관리하는 경우 : 코드와 동기화하는지 확인하기 위해 항상 노력을 기울어야 함.
+	2 . 코드에서 문서를 생성하는 방법이 있음.
+
+##### REST API 문서를 다룰때 이해해야할 중요한 2가지 용어 
+
+###### SWAGGER 
+- API 사용 설명서를 자동으로 만들어주는 도구
+	 **주요 기능**: 실시간 문서화-> 코드 변경시 자동으로 설명서 업데이트 , 테스트  기능-> 설명서에서 직접 API 호출해 볼 수 있음 
+##### Open API
+- 누구나 사용할 수 있게 공개된 API(기상청 날씨 데이터, 카카오지도 등등)
+- 특정 기능을 외부에서 쓸 수 있게 개방한 것
+
+
+##### Springdoc-Openapi 설정하기 
+```xml
+<dependency>  
+    <groupId>org.springdoc</groupId>  
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>  
+    <version>2.5.0</version>  
+</dependency>
+```
+
+```
+http://localhost:8080/swagger-ui.html
+```
+![[Pasted image 20250428175548.png]]
+![[Pasted image 20250428180021.png]]
+
+
+
+# Content Negotiation
+##### 같은 URI를 사용할 때 -> localhost:8080/users
+특정 리소스에 특정 URI가 있는 건데, 하지만 여러 표현이 가능함. 따라서 동일한 리소스에 대해 여러 표현을 보유하는 것이 가능함.
+XML이나 JSON등 다른 콘텐츠 유형, 어떤 언어든지 표현 가능함.
+어떻게 REST API 제공자에게 원하는 표현을 어떻게 알릴 수 있을까?
+`Accept header` 를 통해서` application/xml` 값으로 생성하고 XML 응답을 원한다고 입력 할 수 있음.
+`Accept-Language header` - 요청 헤더에는 Accept-Language를 헤더를 추가한  다음 영어나 네덜란드어 , 프랑스어를 원한다고 입력할수 있음.
+
+이 작업에선 Request Header를 사용함.
+
+###### 일단 POM.XML 설정
+XML을 JSON처럼 다루게 해주는 확장 모듈 : Java < - > XML 간 변환을 가능하게 해줌
+```xml
+<dependency>  
+    <groupId>com.fasterxml.jackson.dataformat</groupId>  
+    <artifactId>jackson-dataformat-xml</artifactId>  
+</dependency>
+```
+![[Pasted image 20250428181306.png]]
+위 결과처럼 XML으로 나오는걸 알수있다.
+
+XML 표현과 Swagger문서는 다른 고급 기능을 다룰 때 몇 가지 문제를 일으키기 때문에 주석 처리하겠다.
+
+##### 전 세계의 사용자들에게 REST API를 사용자 정의하려면 어떻게 하면 될까?
+ 바로 국제화를 사용해야 함.
+국제화를 처리할때 HTTP Request header를 사용함.(`Accept Language`)
