@@ -687,3 +687,57 @@ XML 표현과 Swagger문서는 다른 고급 기능을 다룰 때 몇 가지 문
 ##### 전 세계의 사용자들에게 REST API를 사용자 정의하려면 어떻게 하면 될까?
  바로 국제화를 사용해야 함.
 국제화를 처리할때 HTTP Request header를 사용함.(`Accept Language`)
+예를 들어서 
+'en' -> Good Morning(영어)
+'nl' -> Goedemorgen(독일어)
+'fr' -> Bonjour(프랑스어)
+'de'-> Deutsch(네덜란드어)
+
+```java title=HelloController
+@GetMapping("/hello-world-internationalized")  
+public String helloWorldInternationalized() {  
+    return "Hello World V2";  
+}
+```
+
+첫번째는 위에 인사말을 가져올수있도록 메시지를 어딘가에 저장해야 하는데 
+두번쨰로는 이 값을 가져올수 있는 코드를 작성해야 함.
+
+###### main/resources/messages.properties 파일을 하나 만들기
+``` title= messages.propeties
+good.morning.message=Good Morning
+```
+
+
+```java title=helloController
+@RestController  
+public class HelloController {  
+  
+    private MessageSource messageSource;
+    
+	public HelloController(MessageSource messageSource) {  
+    this.messageSource = messageSource;  
+	}
+    
+  @GetMapping("/hello-world-internationalized")  
+public String helloWorldInternationalized() {  
+    Locale locale = LocaleContextHolder.getLocale();  
+    return messageSource.getMessage("good.morning.message", null, "Default Message", locale);  
+	} 
+}
+```
+
+`MessageSource` 는  Spring Framework에서 다국어 지원을 위한 인터페이스
+주로 국제화된 메시지를 관리하고 , 코드에 따라 메시지를 가져오는 데 사용됨.
+
+- `Locale locale= LocaleContextHolder.getLocale();` 
+   현재 스레드에 바인딩된 Locale(언어 및 지역 정보)를 반환함.
+   Spring에서는 보통 사용자의 요청에 따라 Locale를 자동으로 설정하고 , 이 메서드를 통해 이를 가져옴.
+- `messageSource.getMessage("good.morning.message", null , "Default Message", locale)`
+	`key`-> messages.properties에 정의된 메시지 키
+	`args`-> 메시지에 동적으로 넣을 파라미터
+	`default Message`->  해당 키가 없을 때 대신 반환할 기본 메시지
+	`locale`-> 언어 설정
+
+![[Pasted image 20250429165101.png]]
+사용자의 지역이 네덜란드면 저렇게 네덜란드 말이 나오는걸 알수있다. 
