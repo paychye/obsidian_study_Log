@@ -658,10 +658,7 @@ http://localhost:8080/swagger-ui.html
 ```
 ![[Pasted image 20250428175548.png]]
 ![[Pasted image 20250428180021.png]]
-
-
-
-# Content Negotiation
+# <span style="background:#d4b106">Content Negotiation</span>
 ##### 같은 URI를 사용할 때 -> localhost:8080/users
 특정 리소스에 특정 URI가 있는 건데, 하지만 여러 표현이 가능함. 따라서 동일한 리소스에 대해 여러 표현을 보유하는 것이 가능함.
 XML이나 JSON등 다른 콘텐츠 유형, 어떤 언어든지 표현 가능함.
@@ -671,7 +668,7 @@ XML이나 JSON등 다른 콘텐츠 유형, 어떤 언어든지 표현 가능함.
 
 이 작업에선 Request Header를 사용함.
 
-###### 일단 POM.XML 설정
+###### <span style="background:#d4b106">일단 POM.XML 설정</span>
 XML을 JSON처럼 다루게 해주는 확장 모듈 : Java < - > XML 간 변환을 가능하게 해줌
 ```xml
 <dependency>  
@@ -684,7 +681,7 @@ XML을 JSON처럼 다루게 해주는 확장 모듈 : Java < - > XML 간 변환�
 
 XML 표현과 Swagger문서는 다른 고급 기능을 다룰 때 몇 가지 문제를 일으키기 때문에 주석 처리하겠다.
 
-##### 전 세계의 사용자들에게 REST API를 사용자 정의하려면 어떻게 하면 될까?
+##### <font color="#ffc000">전 세계의 사용자들에게 REST API를 사용자 정의하려면 어떻게 하면 될까?</font>
  바로 국제화를 사용해야 함.
 국제화를 처리할때 HTTP Request header를 사용함.(`Accept Language`)
 예를 들어서 
@@ -741,3 +738,234 @@ public String helloWorldInternationalized() {
 
 ![[Pasted image 20250429165101.png]]
 사용자의 지역이 네덜란드면 저렇게 네덜란드 말이 나오는걸 알수있다. 
+
+#### <font color="#ffc000">REST API 버전관리 - URI 버전 관리</font>
+지금처럼 이름 전체를 반환하던 API를 성과 이름을 나눠서 반환하도록 갑자기 바꾸면, 기존 사용자에게 문제가 생깁니다.  
+API를 바꿀 땐 사용자도 바로 수정해야 하므로 부담이 큽니다.  
+그래서 API 구조를 바꿀 땐 **즉시 적용**하지 말고, **버전 관리**를 통해 사용자가 원할 때 새 버전으로 넘어갈 수 있게 해야 합니다.
+###### <font color="#ffc000">해결 방안</font>
+- <font color="#ffc000">URL</font> 
+- Request Parameter
+- Header
+- Media Type
+
+먼저 URL을  기준으로 REST API 버전관리를 해보자
+```java title=PersonV1
+package com.in28minutes.rest.webservices.restfulwebservices.versioning;  
+  
+public class PersonV1 {  
+    private String name;  
+    public PersonV1(String name) {  
+        this.name = name;  
+    }  
+    public String getName() {  
+        return name;  
+    }  
+    @Override  
+    public String toString() {  
+        return "PersonV1{" +  
+                "name='" + name + '\'' +  
+                '}';  
+    }  
+}
+```
+
+
+```java title=PersonV2
+package com.in28minutes.rest.webservices.restfulwebservices.versioning;  
+  
+public class PersonV2 {  
+    private Name name;  
+    public PersonV2(Name name) {  
+        this.name = name;  
+    }  
+    public Name getName() {  
+        return name;  
+    }  
+  
+    @Override  
+    public String toString() {  
+        return "PersonV2{" +  
+                "name=" + name +  
+                '}';  
+    }  
+}
+```
+
+```java title=Name
+package com.in28minutes.rest.webservices.restfulwebservices.versioning;  
+  
+public class Name {  
+    private String lastName;  
+    private String firstName;  
+  
+    public Name(String lastName, String firstName) {  
+        this.lastName = lastName;  
+        this.firstName = firstName;  
+    }  
+    public String getLastName() {  
+        return lastName;  
+    }  
+  
+    public String getFirstName() {  
+        return firstName;  
+    }  
+    @Override  
+    public String toString() {  
+        return "Name{" +  
+                "lastName='" + lastName + '\'' +  
+                ", firstName='" + firstName + '\'' +  
+                '}';  
+    }  
+}
+```
+
+```java title=VersioningPersonController
+package com.in28minutes.rest.webservices.restfulwebservices.versioning;  
+  
+import org.springframework.web.bind.annotation.GetMapping;  
+import org.springframework.web.bind.annotation.RestController;  
+  
+@RestController  
+public class VersioningPersonController {  
+  
+    @GetMapping("/v1/person")  
+    public PersonV1 getFirstVersionOfPerson() {  
+        return new PersonV1("Bob Charlie");  
+    }  
+}
+```
+
+```json
+  
+{"name": "Bob Charlie"}
+
+```
+
+```java
+@GetMapping("/v2/person")  
+public PersonV2 getSecondVersionOfPerson() {  
+    return new PersonV2(new Name("Bob", "Charlie"));  
+}
+```
+
+```json
+  
+  
+{"name": {"lastName": "Bob","firstName": "Charlie"}}
+
+```
+
+#### Request Parameter 
+```java
+@GetMapping(path="/person", params = "version=1")  
+public PersonV1 getFirstVersionOfPersonRequestParameter() {  
+    return new PersonV1("Bob Charlie");
+}
+@GetMapping(path="/person", params = "version=2")  
+public PersonV2 getSecondVersionOfPersonRequestParameter() {  
+    return new PersonV2(new Name("Bob", "Charlie"));  
+}
+```
+#### Header로 버전관리
+```java
+@GetMapping(path = "/person/header",headers ="X-API-VERSION=1")  
+public PersonV1 getFirstVersionOfPersonRequestHeader() {  
+    return new PersonV1("Bob Charlie");  
+}  
+  
+@GetMapping(path = "/person/header", headers = "X-API-VERSION=2")  
+public PersonV2 getSecondVersionOfPersonRequestHeader() {  
+    return new PersonV2(new Name("Bob", "Charlie"));  
+}
+```
+#### Media으로 버전관리
+```java
+@GetMapping(path = "/person/accept",produces ="application/vnd.company.app-v1+json")  
+public PersonV1 getFirstVersionOfPersonAcceptHeader() {  
+    return new PersonV1("Bob Charlie");  
+}  
+@GetMapping(path = "/person/accept",produces ="application/vnd.company.app-v2+json")  
+public PersonV2 getSecondVersionOfPersonAcceptHeader() {  
+    return new PersonV2(new Name("Bob", "Charlie"));  
+}
+```
+
+##### REST API 버전 관리 방법을 결정할때 고려사항
+- **URI Pollution** -> URI 버전 관리와 요청 매개 변수 버전 관리의 경우, URL Pollution이 상당히 많이 발생함. header나 Media를 이용한 버전관리는 URI Pollution이 적음
+
+- **HTTP 헤더의 오용 ->** 버전 관리용도로 사용해서는 안됨. 따라서 헤더 버전, 미디어 유형 버전 관리는 HTTP 헤더를 오용하고 있는것.
+
+- **Caching->** 일반적으로  URL을 기반으로 수행되는데 , 헤더 버전와 미디어 유형 버전 관리은 URL을 기반으로 캐싱을 할수  없기 때문에  캐싱을 수행하기 전에 헤더를 살펴봐야함.
+
+- **브라우저에서 요청을 실행할수 있는지?** -> URI , Request경우 URL로 간편하게 브라우저에서 사용할 수 있음 ,하지만 헤더 , 미디어 버전 관리에서는 헤더있기 때문에 일반적으로 명령줄 유틸리티를 갖고 있거나 REST API 클라이언트를 사용해서 헤드를 기준으로 구분할 수 있어야 함.
+
+- **API 문서 ->** URI, RequestParam은 API문서를 생성하기는 쉬움 , 하지만 헤더 기준으로 구분하는 문서의 생성을 지원하지 않을 수 있음.
+
+<span style="background:#d4b106">REST API를 구축하기 시작할 때 버전 관리에 대해 생각해야 함.</span>
+<span style="background:#d4b106"> 일관된 버전 관리 방식을 사용해야 함.</span>
+
+
+##### <font color="#ffc000">HATEOAS (Hypermedia as the engine of Application State)</font>
+서버가 클라이언트에게  지금 이 데이터를 보고 난 뒤엔 이런 행동을 할수 있어 라고 알려주는 시스템
+모든 API 응답에 다음 가능한 행동을 하이퍼링크로 제공하는 규칙 
+클라이언트가 서버의  API문서 없이도 모든 기능을 자동 발견할 수 있게 함.
+##### <span style="background:#d4b106"> 구현방식</span>
+ 
+- 사용자 정의 형식과 구현 하는 것은 유지 관리하기엔 까다롭다.
+- 표준 구현 방식: HAL을 이용하기
+	API의 리소스간에 하이퍼링크를 생성하는 일관적이고 쉬운 방법을 제공하는 간단한 방법 
+	_links라는 요소를 생성하면 그안에 여러 링크를 가질 수 있음.
+	표준을 갖고 있으면 좋은 점은 모든 애플리케이션이 이 표준을 따른다는 것
+
+##### <span style="background:#d4b106">스프링 HATEOAS 의존성 추가하기 </span>
+```xml
+<dependency>  
+    <groupId>org.springframework.boot</groupId>  
+    <artifactId>spring-boot-starter-hateoas</artifactId>  
+</dependency>
+```
+
+HATEOAS를 사용하여 링크를 추가하려면
+1. `EntityModel`로 객체 감싸기
+- 반환할 도메인 객체(`User`등)를 `EntityModel.of(user)`로 감쌈
+2. 링크 추가하기
+ - `WebMvcLinkBuilder`를 사용해 링크 생성 
+- `linkTo(methodOn(this.getClass()).retrieveAllUsers());`
+3. 링크를 `EntityModel`에 추가
+- `add(link) `메서드 사용
+
+`EntityModel`은 데이터 + 링크를 함께 전달하는 래퍼
+`WebMvcLinkBuilder`로 컨트롤러 메서드에 대한 링크 생성 
+링크는 `withSelfRel()` , `withRel("다른이름")`등으로 설정 가능 
+
+```java title=UserResource
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;  
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+
+@GetMapping("/users/{id}")  
+public EntityModel<User> retrieveUser(@PathVariable int id) {  
+    User user = service.findById(id);  
+    if (user == null) {  
+        throw new UserNotFoundException("id: " + id);  
+    }  
+    EntityModel<User> entityModel = EntityModel.of(user);  
+    WebMvcLinkBuilder link = linkTo(methodOn(this.getClass()).retrieveAllUsers());  
+    entityModel.add(link.withRel("all-users"));  
+    return entityModel;  
+}
+```
+
+```json
+  
+{"id": 1,
+	"name": "Adam",
+	"birthday": "1995-04-29",
+		"_links": {
+				"all-users": {
+						"href": "[http://localhost:8080/users](http://localhost:8080/users)"
+						}
+			}
+	}
+```
