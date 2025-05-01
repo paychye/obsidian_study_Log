@@ -969,3 +969,114 @@ public EntityModel<User> retrieveUser(@PathVariable int id) {
 			}
 	}
 ```
+
+## REST API 정적 필터링 구현하기
+
+###### REST API 응답의 커스터마이징
+<font color="#ffc000">Serialization(직렬화)</font> -> 
+- 객체를 바이트(Byte)형태로 변하는 과정
+- 컴퓨터 프로그램에서 사용하는 객체는 메모리 안에서만 쓸수 있음, 이 객체를 파일로 저장하거나, 다른 컴퓨터로 보내려면 "메모리 안의 복잡한 모습" 을 바깥에서도 쓸 수 있게 일렬로 펼쳐진 데이터로 바꿔야 함.
+
+커스터마이징 하는 방법 
+1.  `@JsonProperty`->
+	 JSON 데이터와 자바 객체의 필드 이름이 다를 때, 서로 연결해주는 역할을 하는 어노테이션
+	 **"JSON에서 오는 데이터의 이름과 내 자바 변수 이름이 다를 때 , 둘을 이어주는 라벨"**
+
+```java title=user
+public class User {  
+    private Integer id;  
+  
+    @Size(min=2, message = "Name should have atleast 2 characters")  
+    @JsonProperty("user_name")  
+    private String name;  
+ .... 
+}
+```
+```json 
+  
+[{"id": 1,"name": "Adam","birthday": "1995-05-01"},{"id": 2,"name": "Eve","birthday": "2000-05-01"},{"id": 3,"name": "Jim","birthday": "2005-05-01"}]
+
+//@JsonProperty 적용 후
+[{"id": 1,"birthday": "1995-05-01","user_name": "Adam"},{"id": 2,"birthday": "2000-05-01","user_name": "Eve"},{"id": 3,"birthday": "2005-05-01","user_name": "Jim"}]
+
+```
+2. Flitering - >
+	  정적 필터링 : `@JsonIgnoreProperties,` `@JsonIgnore`
+	  동적 필터링: `@JsonFliter` with FilterProvider
+
+ ```java title=SomeBean
+ package com.in28minutes.rest.webservices.restfulwebservices.flitering;  
+  
+import com.fasterxml.jackson.annotation.JsonIgnore;  
+  
+public class SomeBean {  
+  
+    private  String field1;  
+  
+    @JsonIgnore  
+    private String field2;  
+  
+    private String field3;  
+  
+    public SomeBean(String field1, String field2, String field3) {  
+        this.field1 = field1;  
+        this.field2 = field2;  
+        this.field3 = field3;  
+    }  
+    public String getfield1() {  
+        return field1;  
+    }  
+    public String getfield2() {  
+        return field2;  
+    }  
+    public String getfield3() {  
+        return field3;  
+    }  
+    @Override  
+    public String toString() {  
+        return "SomeBean{" +  
+                "field1='" + field1 + '\'' +  
+                ", field2='" + field2 + '\'' +  
+                ", field3='" + field3 + '\'' +  
+                '}';  
+    }  
+}
+```
+```json
+//적용 하기 전 
+{
+	"field1": "value1",
+	"field2": "value2",
+	"field3": "value3"
+}
+// @JsonIgnore 적용 후
+{
+	"field1": "value1",
+	"field3": "value3"
+}
+
+[
+	{"field1": "value1","field3": "value3"},
+	{"field1": "value4","field3": "value6"}
+]
+```
+`SomeBean`의 리스트가 반환 되더라도 field2는 전혀 표시되지 않을 겁니다.
+`/fliterinmg-list` 를 적용하면 이처럼 리스트의 모든 요소에 대해서도 field2에 대해서 표시가 되지 않는다.
+
+```java
+  @JsonIgnoreProperties("field1")
+public class SomeBean {  
+    private  String field1;  
+    @JsonIgnore  
+    private String field2;  
+    private String field3;  
+```
+```json
+[
+	{"field3": "value3"},
+	{"field3": "value6"}
+]
+```
+
+`@JsonIgnoreProperties`를 사용하는 대신 특정 필드에 `@JsonIgnore`를 추가하는게 낫습니다.
+추후 필드 이름을 변경하더라도 실제로 다른 곳에서 변경할 필요가 없음.
